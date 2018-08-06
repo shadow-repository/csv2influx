@@ -7,7 +7,7 @@ const transform = require('stream-transform');
 
 
 function parseValue(recordValue, mappingObject) {
-  if(mappingObject.format === 'jsDate') {
+  if (mappingObject.format === 'jsDate') {
     // convert millisconds to nanoseconds
     return (new Date(recordValue).getTime()) * 1000 * 1000;
   }
@@ -18,11 +18,11 @@ function parseValue(recordValue, mappingObject) {
 function flatSchema(schema) {
   var flatSchema = {};
   var namesMapping = {};
-  for(var key in schema) {
-    if(schema[key].type === undefined) {
+  for (var key in schema) {
+    if (schema[key].type === undefined) {
       throw new Error('mapping.fieldSchema[' + key + '].type is undefined');
     }
-    if(schema[key].from === undefined) {
+    if (schema[key].from === undefined) {
       throw new Error('mapping.fieldSchema[' + key + '].from is undefined');
     }
     flatSchema[key] = schema[key].type;
@@ -40,8 +40,8 @@ function countFileLines(filePath) {
     let i = 0;
     fs.createReadStream(filePath)
       .on("data", (buffer) => {
-        for(i = 0; i < buffer.length; ++i) {
-          if(buffer[i] == 10) {
+        for (i = 0; i < buffer.length; ++i) {
+          if (buffer[i] == 10) {
             lineCount++;
           }
         }
@@ -56,11 +56,11 @@ function countFileLines(filePath) {
 function convertSchemaToObject(schema, namesMapping, record) {
   var obj = {};
 
-  for(var key in schema) {
+  for (var key in schema) {
     var tpl = new template.Template(namesMapping[key]);
 
     var items = tpl.getItems();
-    if(items.length > 0) {
+    if (items.length > 0) {
       obj[key] = tpl.render(record);
     } else {
       obj[key] = record[namesMapping[key]];
@@ -76,7 +76,7 @@ class Importer {
     this.config = config;
     this.inputFile = inputFile;
     this.progressBar = progressBar;
-    this.isQuiteMode = (progressBar)? true: false;
+    this.isQuiteMode = (progressBar) ? true : false;
     this.client = undefined;
     this.fieldSchema = undefined;
     this.tagSchema = undefined;
@@ -87,12 +87,12 @@ class Importer {
   run() {
     return this._import();
   }
-  
+
   _import() {
     return new Promise((resolve, reject) => {
       console.log('Connecting to ' + this.config.influxdbUri);
       const client = new Influx(this.config.influxdbUri);
-      if(client === undefined) {
+      if (client === undefined) {
         throw new Error('Can`t connect to ' + this.config.influxdbUri);
       }
       this.client = client;
@@ -115,14 +115,14 @@ class Importer {
       // callback for checking columns names in csv
 
       this.config.csv.columns = (cols) => {
-        for(var key in this.fieldSchema) {
+        for (var key in this.fieldSchema) {
           // if 'from' field is an array - checking each of array items
-          if(Array.isArray(this.fieldsNamesMapping[key])) {
+          if (Array.isArray(this.fieldsNamesMapping[key])) {
             this.fieldsNamesMapping[key].forEach(el => this._checkColInCols(el, cols));
           } else {
             var tpl = new template.Template(this.fieldsNamesMapping[key]);
             var items = tpl.getItems();
-            if(items.length > 0) {
+            if (items.length > 0) {
               items.forEach(
                 (item) => this._checkColInCols(item, cols)
               );
@@ -147,7 +147,7 @@ class Importer {
         // TODO: add filter
         this._writeRecordToInflux(record)
           .then(() => {
-            if(this.isQuiteMode) {
+            if (this.isQuiteMode) {
               this.progressBar.tick();
             }
 
@@ -161,7 +161,9 @@ class Importer {
 
             reject(errMessage);
           });
-      }, { parallel: 1 });
+      }, {
+        parallel: 1
+      });
 
       input
         .pipe(parser)
@@ -182,7 +184,7 @@ class Importer {
       .tag(tagObject)
       .field(fieldObject)
 
-    if(!this.isQuiteMode) {
+    if (!this.isQuiteMode) {
       console.log('Fields: ' + JSON.stringify(fieldObject));
       console.log('Tags: ' + JSON.stringify(tagObject));
       console.log('Time: ' + time);
@@ -194,30 +196,34 @@ class Importer {
   }
 
   _checkColInCols(col, cols) {
-    if(cols.indexOf(col) < 0) {
+    if (cols.indexOf(col) < 0) {
       // if key doesn't exist in cols array
       var errMessage = `there is no column named "${col}" in ${this.inputFile}\n`;
       errMessage += `column names (current delimiter: "${this.config.csv.delimiter}"):\n`;
-      cols.forEach((el, idx) => errMessage += (idx+1) + ': ' + el + '\n');
+      cols.forEach((el, idx) => errMessage += (idx + 1) + ': ' + el + '\n');
       throw new Error(errMessage);
     }
   }
-  
-  _dealEightDigit(x){
-    if(this._isInteger(x)){
-       if(x>19800101&&x<29990000){
-         strX= x.toString()
-         return strX.substring(0,4)+"-"+strX.substring(4,6)+'-'+strX.substring(6,8)
-       }
-    }
-    else if(typeof(x) ==='string')
-    {
-      yy  = parseInt(x)
-      if(yy!=NaN){
-        if (yy > 19800101 && yy < 29990000) {
-          return x.substring(0, 4) + "-" + x.substring(4, 6) + '-' + x.substring(6, 8)
+
+  _dealEightDigit(x) {
+    if (this._isInteger(x)) {
+      if (x > 19800101 && x < 29990000) {
+        var strX = x.toString()
+        var result = strX.substring(0, 4) + "-" + strX.substring(4, 6) + '-' + strX.substring(6, 8)
+        return result
+      }
+    } else if (typeof (x) === 'string') {
+      try {
+        var yy = parseInt(x.trim())
+        if (yy != NaN) {
+          if (yy > 19800101 && yy < 29990000) {
+            var result = x.substring(0, 4) + "-" + x.substring(4, 6) + '-' + x.substring(6, 8)
+            return result
+          }
         }
-      }      
+      } catch (err) {
+        return x
+      }
     }
     return x
   }
@@ -246,7 +252,7 @@ class Importer {
 module.exports = {
   Importer,
   countFileLines,
-  
+
   // for testing
   parseValue,
   flatSchema,
