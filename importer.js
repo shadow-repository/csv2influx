@@ -202,13 +202,36 @@ class Importer {
       throw new Error(errMessage);
     }
   }
+  
+  _dealEightDigit(x){
+    if(this._isInteger(x)){
+       if(x>19800101&&x<29990000){
+         strX= x.toString()
+         return strX.substring(0,4)+"-"+strX.substring(4,6)+'-'+strX.substring(6,8)
+       }
+    }
+    else if(typeof(x) ==='string')
+    {
+      yy  = parseInt(x)
+      if(yy!=NaN){
+        if (yy > 19800101 && yy < 29990000) {
+          return x.substring(0, 4) + "-" + x.substring(4, 6) + '-' + x.substring(6, 8)
+        }
+      }      
+    }
+    return x
+  }
+
+  _isInteger(obj) {
+    return typeof obj === 'number' && obj % 1 === 0
+  }
 
   _getTimeFromRecord(record) {
     if (this.timeObject !== undefined) {
       if (Array.isArray(this.timeObject.from)) {
         var timestamp = [];
         this.timeObject['from'].forEach(
-          el => timestamp.push(record[el])
+          el => timestamp.push(this._dealEightDigit(record[el]))
         );
         return parseValue(timestamp, this.timeObject);
       } else {
